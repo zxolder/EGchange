@@ -35,7 +35,7 @@ def _build_translator(engine: str, target: str, source: str):
 
 def _gemini_translate(text: str, target: str, source: str) -> str:
     api_key = os.environ["GEMINI_API_KEY"]
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     target_name = _LANGUAGE_NAMES.get(target.lower(), target)
     source_name = _LANGUAGE_NAMES.get(source.lower(), source)
 
