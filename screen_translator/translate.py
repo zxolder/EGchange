@@ -43,13 +43,19 @@ def _gemini_translate(text: str, target: str, source: str) -> str:
     prompt = (
         f"Translate the following on-screen text lines from {source_name} to {target_name}. "
         "Keep exactly the same number of lines, in the same order, one translated line per input line. "
-        "Return ONLY the translated lines with no numbering, quotes, or extra commentary. "
+        "Output ONLY the translated lines. Do not repeat or include the original text. "
+        "Do not add numbering, quotes, or extra commentary. "
         "If a line has no translatable words (numbers, symbols, proper nouns), keep it unchanged.\n\n"
         f"{text}"
     )
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        # Flash models "think" before answering by default, which adds several
+        # seconds of latency that isn't worth it for a plain translation task.
+        "generationConfig": {"thinkingConfig": {"thinkingBudget": 0}},
+    }
 
-    response = requests.post(url, params={"key": api_key}, json=payload, timeout=20)
+    response = requests.post(url, params={"key": api_key}, json=payload, timeout=30)
     response.raise_for_status()
     data = response.json()
     return data["candidates"][0]["content"]["parts"][0]["text"].strip()
