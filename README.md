@@ -46,6 +46,37 @@ python -m screen_translator.main
 | `deepl` | 需要 `DEEPL_API_KEY`（DeepL 免費方案可申請），翻譯品質通常較好、較穩定 |
 | `microsoft` | 需要 `MS_TRANSLATOR_KEY`（Azure Translator 資源），另可設定 `MS_TRANSLATOR_REGION` |
 
+## 打包成 exe（下載即可用，不需裝 Python）
+
+有兩種方式取得 `ScreenTranslator.exe`：
+
+### 方式一：GitHub Actions 自動編譯（推薦）
+
+1. 推一個版本標籤到這個 repo，例如：
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+2. GitHub Actions 會自動在 Windows 雲端機器上打包，完成後：
+   - 到 repo 的 **Releases** 頁面下載 `ScreenTranslator.exe`（標籤觸發會自動建立 Release）
+   - 或不想打標籤的話，到 **Actions** 分頁手動觸發 `Build Windows EXE` workflow（`workflow_dispatch`），完成後在該次執行的 **Artifacts** 下載 `ScreenTranslator-windows.zip`
+
+### 方式二：自己在 Windows 上打包
+
+```powershell
+pip install -r requirements.txt
+pip install pyinstaller
+pyinstaller build.spec
+```
+
+打包完成後執行檔在 `dist\ScreenTranslator.exe`。
+
+### 使用打包好的 exe
+
+1. 把 `.env.example` 複製一份到 exe **同一個資料夾**，改名成 `.env`，依需求編輯設定
+2. 直接雙擊 `ScreenTranslator.exe`（或用系統管理員身分執行，理由同上）
+3. 保持主控台視窗開著，切到遊戲/程式，按熱鍵翻譯畫面
+
 ## 已知限制
 
 - **全螢幕獨佔模式（exclusive fullscreen）的 DirectX 遊戲**可能無法被一般截圖 API 擷取到畫面；把遊戲改成「視窗模式」或「無邊框視窗模式」通常就能正常運作。
