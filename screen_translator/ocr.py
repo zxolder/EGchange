@@ -9,7 +9,7 @@ from winsdk.windows.storage.streams import InMemoryRandomAccessStream, DataWrite
 async def _png_bytes_to_bitmap(png_bytes: bytes):
     stream = InMemoryRandomAccessStream()
     writer = DataWriter(stream.get_output_stream_at(0))
-    writer.write_bytes(list(png_bytes))
+    writer.write_bytes(png_bytes)
     await writer.store_async()
     await writer.flush_async()
     stream.seek(0)
