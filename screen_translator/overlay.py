@@ -33,16 +33,31 @@ class Overlay:
             text = item["translated"]
             if not text:
                 continue
-            canvas.create_rectangle(x0 - 2, y0 - 2, x1 + 2, y1 + 2, fill="#1e1e1e", outline="")
-            font_size = max(10, min(22, int((y1 - y0) * 0.75)))
-            canvas.create_text(
+
+            font_size = max(10, min(20, int((y1 - y0) * 0.7)))
+            # Give the text more horizontal room than the original box so a
+            # short translation doesn't need to wrap just because the source
+            # line was narrow.
+            wrap_width = max(x1 - x0, 220)
+            text_id = canvas.create_text(
                 (x0 + x1) / 2,
                 (y0 + y1) / 2,
                 text=text,
                 fill="#ffdd57",
                 font=("Microsoft JhengHei", font_size, "bold"),
-                width=max(60, x1 - x0),
+                width=wrap_width,
+                justify="center",
             )
+            # Size the background to the text's actual rendered extent
+            # (which may span more than one line) instead of the original
+            # line's box, so it never spills out from behind its own text
+            # into a neighboring line.
+            pad = 3
+            bx0, by0, bx1, by1 = canvas.bbox(text_id)
+            rect_id = canvas.create_rectangle(
+                bx0 - pad, by0 - pad, bx1 + pad, by1 + pad, fill="#1e1e1e", outline=""
+            )
+            canvas.tag_lower(rect_id, text_id)
 
         window.bind("<Escape>", lambda _event: self.hide())
         self._window = window
