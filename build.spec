@@ -15,7 +15,7 @@ hiddenimports = [
 ]
 
 a = Analysis(
-    ["screen_translator/main.py"],
+    ["run.py"],
     pathex=[],
     binaries=[],
     datas=[],

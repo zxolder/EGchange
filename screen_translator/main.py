@@ -3,9 +3,9 @@ import tkinter as tk
 import keyboard
 from dotenv import load_dotenv
 
-from . import capture, config, ocr
-from . import translate as tr
-from .overlay import Overlay
+from screen_translator import capture, config, ocr
+from screen_translator import translate as tr
+from screen_translator.overlay import Overlay
 
 
 def run():
