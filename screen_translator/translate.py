@@ -1,10 +1,12 @@
 import os
+import re
 import time
 
 import requests
 from deep_translator import DeeplTranslator, GoogleTranslator, MicrosoftTranslator
 
 _LINE_SEP = "\n"
+_NUMBERED_LINE_RE = re.compile(r"^\s*(\d+)\s*[:.]\s?(.*)$")
 
 _LANGUAGE_NAMES = {
     "zh-tw": "Traditional Chinese",
@@ -33,20 +35,33 @@ def _build_translator(engine: str, target: str, source: str):
     raise ValueError(f"Unknown TRANSLATE_ENGINE: {engine!r} (use google, deepl, microsoft, or gemini)")
 
 
-def _gemini_translate(text: str, target: str, source: str) -> str:
+def _gemini_translate_lines(lines, target: str, source: str) -> list:
+    """Translate each line independently via Gemini, matched back up by an
+    explicit line number instead of positional order.
+
+    A plain "translate this block, keep the same number of lines" prompt
+    breaks down once a screen has many short, unrelated OCR fragments (menu
+    items, tab labels, etc.): the model occasionally merges or reorders a
+    couple of lines, and every line after that point then lands on the
+    wrong on-screen text box. Numbering each line and asking for the same
+    numbers back lets us realign correctly even when the model doesn't
+    preserve order or drops a line.
+    """
     api_key = os.environ["GEMINI_API_KEY"]
     model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     target_name = _LANGUAGE_NAMES.get(target.lower(), target)
     source_name = _LANGUAGE_NAMES.get(source.lower(), source)
 
+    numbered = _LINE_SEP.join(f"{i + 1}: {line}" for i, line in enumerate(lines))
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     prompt = (
-        f"Translate the following on-screen text lines from {source_name} to {target_name}. "
-        "Keep exactly the same number of lines, in the same order, one translated line per input line. "
-        "Output ONLY the translated lines. Do not repeat or include the original text. "
-        "Do not add numbering, quotes, or extra commentary. "
-        "If a line has no translatable words (numbers, symbols, proper nouns), keep it unchanged.\n\n"
-        f"{text}"
+        f"Each numbered line below is a separate, unrelated piece of on-screen UI text in {source_name}. "
+        f"Translate each one to {target_name} independently. Do not merge, reorder, drop, or combine lines, "
+        "even if some look like fragments of a sentence. "
+        "Reply with the exact same numbers, one per output line, in the format 'N: translated text', in "
+        "ascending numeric order, with no extra commentary. If a line has no translatable words (numbers, "
+        "symbols, proper nouns), repeat it unchanged after its number.\n\n"
+        f"{numbered}"
     )
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -58,7 +73,15 @@ def _gemini_translate(text: str, target: str, source: str) -> str:
     response = requests.post(url, params={"key": api_key}, json=payload, timeout=30)
     response.raise_for_status()
     data = response.json()
-    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    reply = data["candidates"][0]["content"]["parts"][0]["text"]
+
+    translated_by_number = {}
+    for raw_line in reply.splitlines():
+        match = _NUMBERED_LINE_RE.match(raw_line)
+        if match:
+            translated_by_number[int(match.group(1))] = match.group(2).strip()
+
+    return [translated_by_number.get(i + 1, "") for i in range(len(lines))]
 
 
 def translate_lines(lines, target="zh-TW", engine="google", source="en"):
@@ -71,13 +94,15 @@ def translate_lines(lines, target="zh-TW", engine="google", source="en"):
     if not lines:
         return []
 
-    joined = _LINE_SEP.join(lines)
     is_gemini = engine.lower() == "gemini"
     translator = None if is_gemini else _build_translator(engine, target, source)
+    joined = _LINE_SEP.join(lines)
 
     for attempt in range(3):
         try:
-            translated = _gemini_translate(joined, target, source) if is_gemini else translator.translate(joined)
+            if is_gemini:
+                return _gemini_translate_lines(lines, target, source)
+            translated = translator.translate(joined)
             break
         except Exception:
             if attempt == 2:
