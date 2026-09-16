@@ -45,6 +45,7 @@ python -m screen_translator.main
 | `google`（預設） | 使用免費的 Google 翻譯端點，不需申請金鑰，適合先試用；但屬非官方端點，量大時可能被限速 |
 | `deepl` | 需要 `DEEPL_API_KEY`（DeepL 免費方案可申請），翻譯品質通常較好、較穩定 |
 | `microsoft` | 需要 `MS_TRANSLATOR_KEY`（Azure Translator 資源），另可設定 `MS_TRANSLATOR_REGION` |
+| `gemini` | 需要 `GEMINI_API_KEY`（Google AI Studio / Gemini API 金鑰），用 LLM 翻譯，理解上下文能力較好；可用 `GEMINI_MODEL` 指定模型（預設 `gemini-2.5-flash`） |
 
 ## 打包成 exe（下載即可用，不需裝 Python）
 

@@ -4,3 +4,4 @@ winsdk
 keyboard
 deep-translator
 python-dotenv
+requests
