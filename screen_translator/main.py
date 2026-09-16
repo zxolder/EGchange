@@ -17,7 +17,10 @@ def run():
             overlay.hide()
             return
         try:
-            png_bytes, offset = capture.grab_screen_png()
+            if config.CAPTURE_MODE == "active_window":
+                png_bytes, region = capture.grab_active_window_png()
+            else:
+                png_bytes, region = capture.grab_screen_png()
             lines = ocr.recognize_sync(png_bytes, config.OCR_SOURCE_LANG)
             if not lines:
                 print("[screen-translator] no text detected on screen")
@@ -33,7 +36,7 @@ def run():
                 {"bbox": line["bbox"], "translated": text}
                 for line, text in zip(lines, translated)
             ]
-            overlay.show(offset, items)
+            overlay.show(region, items)
 
             if config.AUTO_HIDE_SECONDS > 0:
                 root.after(config.AUTO_HIDE_SECONDS * 1000, overlay.hide)

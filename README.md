@@ -7,7 +7,7 @@
 ## 運作方式
 
 1. 按下熱鍵（預設 `Ctrl+Alt+T`）
-2. 擷取整個虛擬螢幕畫面
+2. 擷取畫面（預設只擷取**目前作用中的視窗**，見下方 `CAPTURE_MODE` 設定）
 3. 用 Windows 內建的 OCR 引擎辨識英文文字與座標
 4. 把辨識出的文字丟給翻譯引擎轉成中文
 5. 在螢幕上原文位置疊加顯示半透明色塊 + 中文翻譯
@@ -46,6 +46,17 @@ python -m screen_translator.main
 | `deepl` | 需要 `DEEPL_API_KEY`（DeepL 免費方案可申請），翻譯品質通常較好、較穩定 |
 | `microsoft` | 需要 `MS_TRANSLATOR_KEY`（Azure Translator 資源），另可設定 `MS_TRANSLATOR_REGION` |
 | `gemini` | 需要 `GEMINI_API_KEY`（Google AI Studio / Gemini API 金鑰），用 LLM 翻譯，理解上下文能力較好；可用 `GEMINI_MODEL` 指定模型（預設 `gemini-3.6-flash`） |
+
+## 擷取模式設定
+
+`.env` 中的 `CAPTURE_MODE` 可選：
+
+| 值 | 說明 |
+|---|---|
+| `active_window`（預設） | 只擷取**目前作用中（前景）的視窗**，不相關的其他視窗/螢幕不會被截入，OCR 與翻譯的文字量較少，速度較快 |
+| `full_screen` | 擷取整個虛擬螢幕（所有螢幕），適合遊戲畫面元素跑到視窗邊界外、或想一次翻譯多個視窗內容的情況 |
+
+若抓不到作用中視窗的範圍（少數情況），會自動退回擷取整個螢幕。
 
 ## 打包成 exe（下載即可用，不需裝 Python）
 

@@ -21,6 +21,7 @@ def _app_dir() -> Path:
 load_dotenv(_app_dir() / ".env")
 
 HOTKEY = os.getenv("SCREEN_TRANSLATOR_HOTKEY", "ctrl+alt+t")
+CAPTURE_MODE = os.getenv("CAPTURE_MODE", "active_window")
 OCR_SOURCE_LANG = os.getenv("OCR_SOURCE_LANG", "en")
 TRANSLATE_TARGET = os.getenv("TRANSLATE_TARGET", "zh-TW")
 TRANSLATE_ENGINE = os.getenv("TRANSLATE_ENGINE", "google")

@@ -4,28 +4,26 @@ _KEY_COLOR = "black"
 
 
 class Overlay:
-    """Full-virtual-screen transparent, click-through window used to draw
-    translated text boxes on top of the original on-screen text."""
+    """Transparent, click-through window used to draw translated text
+    boxes on top of the original on-screen text, sized to the captured
+    region (a single window or the full virtual screen)."""
 
     def __init__(self, root: tk.Tk):
         self._root = root
         self._window = None
 
-    def show(self, screen_offset, items):
+    def show(self, region, items):
         self.hide()
         if not items:
             return
 
-        offset_x, offset_y = screen_offset
+        left, top, width, height = region
         window = tk.Toplevel(self._root)
         window.overrideredirect(True)
         window.attributes("-topmost", True)
         window.attributes("-transparentcolor", _KEY_COLOR)
         window.configure(bg=_KEY_COLOR)
-
-        width = window.winfo_screenwidth()
-        height = window.winfo_screenheight()
-        window.geometry(f"{width}x{height}+{offset_x}+{offset_y}")
+        window.geometry(f"{width}x{height}+{left}+{top}")
 
         canvas = tk.Canvas(window, bg=_KEY_COLOR, highlightthickness=0)
         canvas.pack(fill="both", expand=True)
