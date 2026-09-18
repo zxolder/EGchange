@@ -1,7 +1,6 @@
 mss
 Pillow
 winsdk
-keyboard
 deep-translator
 python-dotenv
 requests

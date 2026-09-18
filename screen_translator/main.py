@@ -1,8 +1,6 @@
 import tkinter as tk
 
-import keyboard
-
-from screen_translator import capture, config, ocr
+from screen_translator import capture, config, hotkey, ocr
 from screen_translator import translate as tr
 from screen_translator.overlay import Overlay
 
@@ -46,7 +44,8 @@ def run():
     def on_hotkey():
         root.after(0, do_toggle)
 
-    keyboard.add_hotkey(config.HOTKEY, on_hotkey)
+    # Keep a reference so the hotkey listener thread isn't garbage collected.
+    _hotkey_thread = hotkey.register_hotkey(config.HOTKEY, on_hotkey)  # noqa: F841
     print(f"Screen Translator running. Press {config.HOTKEY} to translate the screen.")
     print(f"Translation engine: {config.TRANSLATE_ENGINE} (target: {config.TRANSLATE_TARGET})")
     print("Press Ctrl+C in this console window to quit.")

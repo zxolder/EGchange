@@ -9,8 +9,6 @@ hiddenimports = [
     "winsdk.windows.storage.streams",
     "winsdk.windows.foundation",
     "winsdk.windows.foundation.collections",
-    "keyboard._winkeyboard",
-    "keyboard._winmouse",
     "mss.windows",
 ]
 
