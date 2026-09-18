@@ -69,24 +69,35 @@ def register_hotkey(hotkey_str: str, callback) -> threading.Thread:
     collected, for the lifetime of the app.
     """
     modifiers, vk = _parse_hotkey(hotkey_str)
+    print(f"[screen-translator] registering hotkey {hotkey_str!r} (modifiers=0x{modifiers:02X}, vk=0x{vk:02X})")
 
     def _run():
-        hotkey_id = 1
-        if not _user32.RegisterHotKey(None, hotkey_id, modifiers, vk):
-            error = ctypes.GetLastError()
-            print(
-                f"[screen-translator] failed to register hotkey {hotkey_str!r} "
-                f"(Win32 error {error}); another program may already be using it"
-            )
-            return
-
-        msg = wintypes.MSG()
         try:
-            while _user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
-                if msg.message == _WM_HOTKEY:
-                    callback()
-        finally:
-            _user32.UnregisterHotKey(None, hotkey_id)
+            hotkey_id = 1
+            ok = _user32.RegisterHotKey(None, hotkey_id, modifiers, vk)
+            if not ok:
+                error = ctypes.GetLastError()
+                print(
+                    f"[screen-translator] RegisterHotKey FAILED for {hotkey_str!r} "
+                    f"(Win32 error {error}); another program may already be using it"
+                )
+                return
+            print(f"[screen-translator] RegisterHotKey succeeded for {hotkey_str!r}, listening for key press...")
+
+            msg = wintypes.MSG()
+            try:
+                while True:
+                    result = _user32.GetMessageW(ctypes.byref(msg), None, 0, 0)
+                    if result <= 0:
+                        print(f"[screen-translator] hotkey message loop stopped (GetMessageW returned {result})")
+                        break
+                    if msg.message == _WM_HOTKEY:
+                        print("[screen-translator] hotkey pressed")
+                        callback()
+            finally:
+                _user32.UnregisterHotKey(None, hotkey_id)
+        except Exception as exc:  # noqa: BLE001 - this runs in a background thread; make sure failures are visible
+            print(f"[screen-translator] hotkey thread crashed: {exc!r}")
 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
