@@ -47,5 +47,11 @@ async def recognize(png_bytes: bytes, lang_tag: str = "en"):
     return lines
 
 
-def recognize_sync(png_bytes: bytes, lang_tag: str = "en"):
-    return asyncio.run(recognize(png_bytes, lang_tag))
+def recognize_sync(png_bytes: bytes, lang_tag: str = "en", timeout: float = 15.0):
+    async def _with_timeout():
+        return await asyncio.wait_for(recognize(png_bytes, lang_tag), timeout)
+
+    try:
+        return asyncio.run(_with_timeout())
+    except asyncio.TimeoutError as exc:
+        raise RuntimeError(f"OCR timed out after {timeout:.0f}s") from exc
