@@ -7,14 +7,18 @@ from winsdk.windows.storage.streams import InMemoryRandomAccessStream, DataWrite
 
 
 async def _png_bytes_to_bitmap(png_bytes: bytes):
+    print("[screen-translator] ocr: writing bytes to stream...")
     stream = InMemoryRandomAccessStream()
     writer = DataWriter(stream.get_output_stream_at(0))
     writer.write_bytes(png_bytes)
     await writer.store_async()
     await writer.flush_async()
     stream.seek(0)
+    print("[screen-translator] ocr: decoding bitmap...")
     decoder = await BitmapDecoder.create_async(stream)
-    return await decoder.get_software_bitmap_async()
+    bitmap = await decoder.get_software_bitmap_async()
+    print("[screen-translator] ocr: bitmap decoded")
+    return bitmap
 
 
 async def recognize(png_bytes: bytes, lang_tag: str = "en"):
@@ -23,15 +27,20 @@ async def recognize(png_bytes: bytes, lang_tag: str = "en"):
     Returns a list of {"text": str, "bbox": (x0, y0, x1, y1)} per detected line.
     """
     language = Language(lang_tag)
-    if not OcrEngine.is_language_supported(language):
+    supported = OcrEngine.is_language_supported(language)
+    print(f"[screen-translator] ocr: language {lang_tag!r} supported = {supported}")
+    if not supported:
         raise RuntimeError(
             f"OCR language pack for '{lang_tag}' is not installed. "
             "Add it via Windows Settings > Time & language > Language & region."
         )
 
     engine = OcrEngine.try_create_from_language(language)
+    print(f"[screen-translator] ocr: engine created = {engine is not None}")
     bitmap = await _png_bytes_to_bitmap(png_bytes)
+    print("[screen-translator] ocr: running recognize_async...")
     result = await engine.recognize_async(bitmap)
+    print(f"[screen-translator] ocr: recognize_async done, {len(list(result.lines))} line(s)")
 
     lines = []
     for line in result.lines:
