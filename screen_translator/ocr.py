@@ -1,28 +1,26 @@
 import asyncio
 
 from winsdk.windows.globalization import Language
-from winsdk.windows.graphics.imaging import BitmapDecoder
+from winsdk.windows.graphics.imaging import BitmapAlphaMode, BitmapPixelFormat, SoftwareBitmap
 from winsdk.windows.media.ocr import OcrEngine
-from winsdk.windows.storage.streams import InMemoryRandomAccessStream, DataWriter
+from winsdk.windows.security.cryptography import CryptographicBuffer
 
 
-async def _png_bytes_to_bitmap(png_bytes: bytes):
-    print("[screen-translator] ocr: writing bytes to stream...")
-    stream = InMemoryRandomAccessStream()
-    writer = DataWriter(stream.get_output_stream_at(0))
-    writer.write_bytes(png_bytes)
-    await writer.store_async()
-    await writer.flush_async()
-    stream.seek(0)
-    print("[screen-translator] ocr: decoding bitmap...")
-    decoder = await BitmapDecoder.create_async(stream)
-    bitmap = await decoder.get_software_bitmap_async()
-    print("[screen-translator] ocr: bitmap decoded")
-    return bitmap
+def _bgra_to_bitmap(bgra_bytes: bytes, width: int, height: int):
+    """Build a SoftwareBitmap straight from raw BGRA8 pixels.
+
+    Avoids encoding to PNG and having Windows decode it back (via
+    BitmapDecoder/WIC), which depends on imaging codecs that can be
+    missing or broken on some Windows installs (e.g. editions without
+    the Media Feature Pack) and were observed to hang indefinitely on
+    one such machine. This is a plain in-memory buffer copy instead.
+    """
+    buffer = CryptographicBuffer.create_from_byte_array(bgra_bytes)
+    return SoftwareBitmap.create_copy_from_buffer(buffer, BitmapPixelFormat.BGRA8, width, height, BitmapAlphaMode.IGNORE)
 
 
-async def recognize(png_bytes: bytes, lang_tag: str = "en"):
-    """Run Windows' built-in OCR engine over a PNG screenshot.
+async def recognize(bgra_bytes: bytes, width: int, height: int, lang_tag: str = "en"):
+    """Run Windows' built-in OCR engine over a raw BGRA8 screenshot.
 
     Returns a list of {"text": str, "bbox": (x0, y0, x1, y1)} per detected line.
     """
@@ -37,8 +35,8 @@ async def recognize(png_bytes: bytes, lang_tag: str = "en"):
 
     engine = OcrEngine.try_create_from_language(language)
     print(f"[screen-translator] ocr: engine created = {engine is not None}")
-    bitmap = await _png_bytes_to_bitmap(png_bytes)
-    print("[screen-translator] ocr: running recognize_async...")
+    bitmap = _bgra_to_bitmap(bgra_bytes, width, height)
+    print("[screen-translator] ocr: bitmap ready, running recognize_async...")
     result = await engine.recognize_async(bitmap)
     print(f"[screen-translator] ocr: recognize_async done, {len(list(result.lines))} line(s)")
 
@@ -56,9 +54,9 @@ async def recognize(png_bytes: bytes, lang_tag: str = "en"):
     return lines
 
 
-def recognize_sync(png_bytes: bytes, lang_tag: str = "en", timeout: float = 15.0):
+def recognize_sync(bgra_bytes: bytes, width: int, height: int, lang_tag: str = "en", timeout: float = 15.0):
     async def _with_timeout():
-        return await asyncio.wait_for(recognize(png_bytes, lang_tag), timeout)
+        return await asyncio.wait_for(recognize(bgra_bytes, width, height, lang_tag), timeout)
 
     try:
         return asyncio.run(_with_timeout())

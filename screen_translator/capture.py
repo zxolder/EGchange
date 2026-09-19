@@ -1,9 +1,7 @@
 import ctypes
-import io
 from ctypes import wintypes
 
 import mss
-from PIL import Image
 
 _user32 = ctypes.windll.user32
 _dwmapi = ctypes.windll.dwmapi
@@ -32,26 +30,27 @@ _dwmapi.DwmGetWindowAttribute.argtypes = [
 _dwmapi.DwmGetWindowAttribute.restype = ctypes.c_long
 
 
-def _grab_region_png(left, top, width, height):
+def _grab_region(left, top, width, height):
     with mss.mss() as sct:
         region = {"left": left, "top": top, "width": width, "height": height}
         shot = sct.grab(region)
-        img = Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        return buf.getvalue(), (left, top, width, height)
+        # Raw BGRA8 pixels, tightly packed - handed straight to Windows OCR
+        # without an intermediate PNG encode/decode (which depends on
+        # imaging codecs that aren't always present, e.g. on Windows
+        # editions without the Media Feature Pack).
+        return bytes(shot.bgra), (left, top, width, height)
 
 
-def grab_screen_png():
-    """Capture the full virtual screen (all monitors) as PNG bytes.
+def grab_screen():
+    """Capture the full virtual screen (all monitors).
 
-    Returns (png_bytes, (left, top, width, height)) describing the
+    Returns (bgra_bytes, (left, top, width, height)) describing the
     captured region in virtual-screen coordinates, needed to position
     the overlay window on the same spot.
     """
     with mss.mss() as sct:
         monitor = sct.monitors[0]
-        return _grab_region_png(monitor["left"], monitor["top"], monitor["width"], monitor["height"])
+        return _grab_region(monitor["left"], monitor["top"], monitor["width"], monitor["height"])
 
 
 def _active_window_bounds():
@@ -73,14 +72,14 @@ def _active_window_bounds():
     return rect.left, rect.top, width, height
 
 
-def grab_active_window_png():
-    """Capture only the current foreground window as PNG bytes.
+def grab_active_window():
+    """Capture only the current foreground window.
 
     Falls back to a full-screen capture if the active window can't be
     determined (no foreground window, or its bounds look invalid).
-    Returns (png_bytes, (left, top, width, height)).
+    Returns (bgra_bytes, (left, top, width, height)).
     """
     bounds = _active_window_bounds()
     if bounds is None:
-        return grab_screen_png()
-    return _grab_region_png(*bounds)
+        return grab_screen()
+    return _grab_region(*bounds)

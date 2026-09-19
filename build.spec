@@ -7,6 +7,7 @@ hiddenimports = [
     "winsdk.windows.globalization",
     "winsdk.windows.graphics.imaging",
     "winsdk.windows.storage.streams",
+    "winsdk.windows.security.cryptography",
     "winsdk.windows.foundation",
     "winsdk.windows.foundation.collections",
     "mss.windows",

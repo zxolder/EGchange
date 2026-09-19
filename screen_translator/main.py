@@ -23,10 +23,11 @@ def run():
             return
         try:
             if config.CAPTURE_MODE == "active_window":
-                png_bytes, region = capture.grab_active_window_png()
+                image_bytes, region = capture.grab_active_window()
             else:
-                png_bytes, region = capture.grab_screen_png()
-            lines = ocr.recognize_sync(png_bytes, config.OCR_SOURCE_LANG)
+                image_bytes, region = capture.grab_screen()
+            _, _, width, height = region
+            lines = ocr.recognize_sync(image_bytes, width, height, config.OCR_SOURCE_LANG)
             if not lines:
                 print("[screen-translator] no text detected on screen")
                 return
